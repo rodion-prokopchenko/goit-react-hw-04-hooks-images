@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import axiosFetch from 'services/pixabayAPI';
 import { toast } from 'react-toastify';
 import propTypes from "prop-types"
@@ -11,161 +11,170 @@ import Button from 'components/Button/Button';
 
 import 'react-toastify/dist/ReactToastify.css';
 
-export default class ImageGallery extends Component {
-  state = {
-    imageArray: [],
-    error: null,
-    status: 'idle',
-    page: 1,
-  };
+export default function ImageGallery({toggleModal, searchString}) {
+  const [status, setStatus] = useState("idle")
+    
+  const [error, setError] = useState(null)
+  const [imageArray, setImageArray] = useState([])
+  const [page, setPage] = useState(1)
 
-  async componentDidUpdate(prevProps, prevState) {
-    const prevSearch = prevProps.searchString;
-    const nextSearch = this.props.searchString;
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
-
-    if (prevSearch !== nextSearch) {
-      this.setState({ status: 'pending', page: 1 });
-
+  useEffect(async () => {
+    console.log(page.prevPage)
+    if (searchString === "") {
+      return
+    }
+    if (searchString !== "") {
+      
+      setPage(1)
+      setStatus("pending")
       try {
-        const fetchResult = await axiosFetch(nextSearch, nextPage);
+        const fetchResult =  await axiosFetch(searchString, page);
 
+        console.log(fetchResult)
         if (fetchResult.length === 0) {
-          throw (
-            (new Error(`По запросу ${nextSearch} ничего нет`),
-            toast.warn('Пусто'))
+          throw (setStatus('rejected')
+            (new Error(`По запросу ${searchString} ничего нет`),
+              toast.warn('Пусто'))
+            
           );
         }
-
-        this.setState({
-          imageArray: [...fetchResult],
-          status: 'resolved',
-        });
+ 
+       setImageArray([...fetchResult])
+       setStatus("resolved")
+          
         toast.success('Нашли!');
       } catch (error) {
         console.log(error);
-        this.setState({ error, status: 'rejected' });
+        setStatus('rejected');
       }
     }
+  }, [searchString])
 
-    if (prevPage !== nextPage) {
-      this.setState({ status: 'pending' });
+  useEffect(async() => {
+    if (page !== 1) {
+      setStatus("pending")
 
-      axiosFetch(nextSearch, nextPage)
+      axiosFetch(searchString, page)
         .then(result => {
+
           if (result.length === 0) {
-            return Promise.reject(
-              new Error(`По запросу ${nextSearch} ничего нет`),
+            return Promise.reject(             
+              new Error(`По запросу ${searchString} ничего нет`),
               toast.warn('Пусто'),
+              setStatus("resolved")
             );
           }
 
-          this.setState(prevState => ({
-            imageArray: [...prevState.imageArray, ...result],
-            status: 'resolved',
-          }));
+
+         setImageArray([...imageArray, ...result])
+         setStatus("resolved")
+        
           toast.success('Нашли!');
         })
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
-  }
-
-  incrPage = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  }, [page])
+  
+ function incrPage  () {
+    setPage(page + 1)
   };
 
-  render() {
-    const { imageArray, error, status } = this.state;
 
     return (
       <>
         {status === 'idle' && <ImageGalleryIdleView />}
         {status === 'pending' && <ImageGalleryPendingView />}
         {status === 'rejected' && (
-          <ImageGalleryErrorView message={error.message} />
+          <ImageGalleryErrorView message={error} />
         )}
         {status === 'resolved' && (
           <>
             <ImageGalleryDataView
               imageArray={imageArray}
-              toggleModal={this.props.toggleModal}
+              toggleModal={toggleModal}
             />
-            <Button pageDown={this.incrPage} />;
+            <Button pageDown={incrPage} />;
           </>
         )}
       </>
     );
-  }
 }
+  
 ImageGallery.propTypes = {
   error: propTypes.string,
   status: propTypes.string,
   page: propTypes.number
 }
 
-// export default function ImageGallery({toggleModal, searchString}) {
-//   const [status, setStatus] = useState("idle")
-    
-//   const [error, setError] = useState(null)
-//   const [imageArray, setImageArray] = useState([])
-//   const [page, setPage] = useState(1)
 
-//   useEffect(() => {
-//     if (searchString !== "") {
-//   // setStatus("pending"),
-//         setPage(1)
+// export default class ImageGallery extends Component {
+//   state = {
+//     imageArray: [],
+//     error: null,
+//     status: 'idle',
+//     page: 1,
+//   };
+
+//   async componentDidUpdate(prevProps, prevState) {
+//     const prevSearch = prevProps.searchString;
+//     const nextSearch = this.props.searchString;
+//     const prevPage = prevState.page;
+//     const nextPage = this.state.page;
+
+//     if (prevSearch !== nextSearch) {
+//       this.setState({ status: 'pending', page: 1 });
 
 //       try {
-//         const fetchResult =  axiosFetch(searchString, page);
+//         const fetchResult = await axiosFetch(nextSearch, nextPage);
 
 //         if (fetchResult.length === 0) {
 //           throw (
-//             (new Error(`По запросу ${searchString} ничего нет`),
+//             (new Error(`По запросу ${nextSearch} ничего нет`),
 //             toast.warn('Пусто'))
 //           );
 //         }
 
-//       // setImageArray([...fetchResult]),
-//        setStatus("resolved")
-          
+//         this.setState({
+//           imageArray: [...fetchResult],
+//           status: 'resolved',
+//         });
 //         toast.success('Нашли!');
 //       } catch (error) {
 //         console.log(error);
-//         setStatus('rejected');
+//         this.setState({ error, status: 'rejected' });
 //       }
 //     }
 
-//     if (page.prevPage !== page) {
-//       setStatus("pending")
+//     if (prevPage !== nextPage) {
+//       this.setState({ status: 'pending' });
 
-//       axiosFetch(searchString, page)
+//       axiosFetch(nextSearch, nextPage)
 //         .then(result => {
 //           if (result.length === 0) {
 //             return Promise.reject(
-//               new Error(`По запросу ${searchString} ничего нет`),
+//               new Error(`По запросу ${nextSearch} ничего нет`),
 //               toast.warn('Пусто'),
 //             );
 //           }
 
-//         // setImageArray([...imageArray, ...result]),
-//        setStatus("resolved")
-        
+//           this.setState(prevState => ({
+//             imageArray: [...prevState.imageArray, ...result],
+//             status: 'resolved',
+//           }));
 //           toast.success('Нашли!');
 //         })
 //         .catch(error => this.setState({ error, status: 'rejected' }));
 //     }
-  
-//   }, [searchString])
+//   }
 
-//  function incrPage  () {
-//     setPage(prevPage => ({
-//       page: prevPage.page + 1,
+//   incrPage = () => {
+//     this.setState(prevState => ({
+//       page: prevState.page + 1,
 //     }));
 //   };
 
+//   render() {
+//     const { imageArray, error, status } = this.state;
 
 //     return (
 //       <>
@@ -178,15 +187,15 @@ ImageGallery.propTypes = {
 //           <>
 //             <ImageGalleryDataView
 //               imageArray={imageArray}
-//               toggleModal={toggleModal}
+//               toggleModal={this.props.toggleModal}
 //             />
-//             <Button pageDown={incrPage} />;
+//             <Button pageDown={this.incrPage} />;
 //           </>
 //         )}
 //       </>
 //     );
+//   }
 // }
-  
 // ImageGallery.propTypes = {
 //   error: propTypes.string,
 //   status: propTypes.string,

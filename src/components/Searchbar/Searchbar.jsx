@@ -9,10 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function Searchbar({onSubmit}) {
   const [searchString, setSearchString] = useState('')
-  // state = {
-  //   searchString: '',
-  // };
-
+ 
   function handleInputChange  (e)  {
     setSearchString( e.currentTarget.value.toLowerCase() );
   };
